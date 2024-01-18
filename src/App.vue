@@ -1,17 +1,76 @@
 <template>
-  <img alt="Vue logo" src="./assets/logo.png">
-  <HelloWorld msg="Welcome to Your Vue.js App"/>
+  <div id="nav">
+      <Navbar
+      :cartCount="cartCount"
+    @resetCartCount="resetCartCount"
+    v-if="!['Signup', 'Signin'].includes($route.name)"
+      />
+  </div>
+  <router-view
+  :baseURL="baseURL"
+  :categories="categories"
+  :products="products"
+  @fetchData = "fetchData">
+  </router-view>
+  <Footer/>
 </template>
 
 <script>
-import HelloWorld from './components/HelloWorld.vue'
-
+import Navbar from "./components/NavbarView.vue";
+import Footer from "./components/FooterView.vue";
+import axios from 'axios';
 export default {
-  name: 'App',
-  components: {
-    HelloWorld
+  components: { Navbar, Footer },
+  data() {
+    return {
+      baseURL : "http://localhost:8081/",
+      products: [],
+      categories: [],
+      key: 0,
+      token: null,
+      cartCount: 0,
+    }
+  },
+  methods: {
+    async fetchData() {
+
+      // api call to get all the categories
+      await axios.get(this.baseURL + "category/list")
+      .then(res => {
+        this.categories = res.data
+        console.log(this.categories)
+      }).catch((err) => console.log('err', err));
+
+      // api call to get the products
+
+      await axios.get(this.baseURL + "product/")
+      .then(res => {
+        this.products = res.data
+      }).catch((err) => console.log('err', err));
+
+      if (this.token) {
+        await axios.get(`${this.baseURL}cart/?token=${this.token}`).then(
+          (response) => {
+            if (response.status == 200) {
+              // update cart
+              this.cartCount = Object.keys(response.data.cartItems).length;
+            }
+          },
+          (error) => {
+            console.log(error);
+          }
+        );
+      }
+    },
+    resetCartCount() {
+      this.cartCount = 0;
+    },
+  },
+  mounted() {
+    this.token = localStorage.getItem('token');
+    this.fetchData();
   }
-}
+};
 </script>
 
 <style>
@@ -21,6 +80,18 @@ export default {
   -moz-osx-font-smoothing: grayscale;
   text-align: center;
   color: #2c3e50;
-  margin-top: 60px;
+}
+
+nav {
+  padding: 30px;
+}
+
+nav a {
+  font-weight: bold;
+  color: #2c3e50;
+}
+
+nav a.router-link-exact-active {
+  color: #42b983;
 }
 </style>
